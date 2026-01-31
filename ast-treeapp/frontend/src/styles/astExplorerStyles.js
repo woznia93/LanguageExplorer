@@ -56,6 +56,21 @@ export const styles = {
   },
   h2: { margin: "0 0 10px 0", fontSize: 14, color: "#f5f5f5" },
   h3: { margin: "0 0 8px 0", fontSize: 13, color: "#f5f5f5" },
+  cardHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  editBtn: {
+    borderRadius: 999,
+    border: "1px solid #2a2a2a",
+    background: "#161616",
+    color: "#f5f5f5",
+    padding: "4px 10px",
+    fontSize: 12,
+    cursor: "pointer",
+  },
   textarea: {
     width: "100%",
     height: 220,

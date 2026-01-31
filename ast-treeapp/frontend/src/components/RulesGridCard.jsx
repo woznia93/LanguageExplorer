@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { styles } from "../styles/astExplorerStyles.js";
 
 export default function RulesGridCard({
@@ -9,6 +10,8 @@ export default function RulesGridCard({
   help,
   addLabel = "Add row",
 }) {
+  const [editing, setEditing] = useState(false);
+
   function updateRow(index, key, value) {
     const next = rows.map((row, i) => (i === index ? { ...row, [key]: value } : row));
     setRows(next);
@@ -25,7 +28,16 @@ export default function RulesGridCard({
 
   return (
     <section style={styles.card}>
-      <h2 style={styles.h2}>{title}</h2>
+      <div style={styles.cardHeader}>
+        <h2 style={styles.h2}>{title}</h2>
+        <button
+          type="button"
+          onClick={() => setEditing((v) => !v)}
+          style={styles.editBtn}
+        >
+          {editing ? "Done" : "Edit"}
+        </button>
+      </div>
 
       <div style={styles.gridRows}>
         {rows.map((row, i) => (
@@ -44,18 +56,24 @@ export default function RulesGridCard({
               style={styles.gridInput}
               spellCheck={false}
             />
-            <button type="button" onClick={() => removeRow(i)} style={styles.rowBtn}>
-              Remove
-            </button>
+            {editing ? (
+              <button type="button" onClick={() => removeRow(i)} style={styles.rowBtn}>
+                Remove
+              </button>
+            ) : (
+              <span />
+            )}
           </div>
         ))}
       </div>
 
-      <div style={styles.rowActions}>
-        <button type="button" onClick={addRow} style={styles.addBtn}>
-          {addLabel}
-        </button>
-      </div>
+      {editing && (
+        <div style={styles.rowActions}>
+          <button type="button" onClick={addRow} style={styles.addBtn}>
+            {addLabel}
+          </button>
+        </div>
+      )}
 
       <p style={styles.help}>{help}</p>
     </section>
