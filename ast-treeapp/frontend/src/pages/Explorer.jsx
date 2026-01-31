@@ -132,7 +132,7 @@ export default function Explorer() {
           rightPlaceholder="Rule expression"
           help={
             <>
-              PEG style expressions.
+              EBNF style expressions.
             </>
           }
         />
