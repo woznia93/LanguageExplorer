@@ -125,7 +125,7 @@ export default function Explorer() {
           onChange={setGrammarRules}
           help={
             <>
-              PEG style expressions.
+              EBNF style expressions.
             </>
           }
         />
