@@ -5,7 +5,7 @@ from lark import Lark, Token, Tree
 from typing import List, Optional
 from mangum import Mangum
 
-app = FastAPI(title="AST Explorer API", version="1.0.0")
+app = FastAPI(title="AST Explorer API", version="1.0.0", root_path="/api/parse")
 
 app.add_middleware(
     CORSMiddleware,
