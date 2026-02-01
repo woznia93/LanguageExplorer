@@ -5,6 +5,7 @@ from lark import Lark, Token, Tree
 from typing import List, Optional, Dict
 import json
 
+global_id = 0
 
 app = FastAPI(
     title="AST Explorer API",
@@ -51,10 +52,11 @@ def ast_to_json(node):
     """
     Recursively converts a Lark AST node into JSON-friendly dict
     """
-    id = 0
+    global global_id
     if isinstance(node, Token):
+        global_id += 1
         return {
-            "id": 1,
+            "id": global_id,
             "type": node.type,
             "value": node.value,
             "range": {
@@ -65,8 +67,7 @@ def ast_to_json(node):
             "column": node.column,
         }
     elif isinstance(node, Tree):
-        return {
-            "id": 1,
+        r = {
             "type": node.data,  # grammar rule name
             "range": {
                 "start_pos": getattr(node.meta, "start_pos", None),
@@ -74,8 +75,12 @@ def ast_to_json(node):
             },
             "line": getattr(node.meta, "line", None),
             "column": getattr(node.meta, "column", None),
+            "id": 0,
             "children": [ast_to_json(child) for child in node.children],
         }
+        global_id += 1
+        r["id"] = global_id
+        return r
     else:
         raise TypeError(f"Unknown node type: {type(node)}")
 
