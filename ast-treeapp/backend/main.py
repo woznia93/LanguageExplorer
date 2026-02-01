@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from lark import Lark
+from lark import Lark, Token, Tree
 from typing import List, Optional, Dict
+import json
 
 
 app = FastAPI(
@@ -46,6 +47,29 @@ def read_root():
         "version": "1.0.0"
     }
 
+def ast_to_json(node):
+    """
+    Recursively converts a Lark AST node into JSON-friendly dict
+    """
+    if isinstance(node, Token):
+        return {
+            "type": node.type,
+            "value": node.value,
+            "start_pos": node.start_pos,
+            "line": node.line,
+            "column": node.column,
+        }
+    elif isinstance(node, Tree):
+        return {
+            "type": node.data,  # grammar rule name
+            "value": getattr(node.meta, "value", None),
+            "start_pos": getattr(node.meta, "start_pos", None),
+            "end_pos": getattr(node.meta, "end_pos", None),
+            "children": [ast_to_json(child) for child in node.children],
+        }
+    else:
+        raise TypeError(f"Unknown node type: {type(node)}")
+
 @app.post("/api/parse")
 def parse_code(request: CodeRequest):
     """
@@ -63,10 +87,13 @@ def parse_code(request: CodeRequest):
             grammar += f"%ignore {rule.key}\n"
 
     print(grammar)
-    parser = Lark(grammar)
 
+    parser = Lark(grammar, propagate_positions=True)
     tree = parser.parse(request.source)
-    print(tree)
+    j = ast_to_json(tree)
+    print(json.dumps(j, indent=2))
+
+
     return 1;
 
     # try:

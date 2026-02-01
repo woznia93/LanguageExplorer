@@ -123,6 +123,7 @@ export default function Explorer() {
         }
       } else {
         const data = mockParseArithmetic(sourceText);
+        console.log(data)
         if (!data.ok) setErrors(data.errors);
         else {
           setAst(data.ast);
