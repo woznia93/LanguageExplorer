@@ -119,7 +119,6 @@ def parse_code(request: CodeRequest):
     
 
 
-    return 1;
 
     # try:
     #     if request.language == "python":

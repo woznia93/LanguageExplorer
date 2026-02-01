@@ -14,6 +14,7 @@ export default function RulesGridCard({
   showIgnore = false,
   lockLeftIndices = [],
   disableRemoveIndices = [],
+  tokens = false
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -62,6 +63,15 @@ export default function RulesGridCard({
       <div style={styles.gridRows}>
         {rows.map((row, i) => {
           const locked = isLocked(i);
+          // if (tokens) {
+          //   const SYMBOL_REGEX = /^[_A-Z][_A-Z0-9]*$/;
+          // } else {
+          //   const SYMBOL_REGEX = /^[_a-z][_z-0-9]*$/;
+          // }
+          const SYMBOL_REGEX = tokens ? /^[_A-Z][_A-Z0-9]*$/ : /^[_a-z][_a-z0-9]*$/;
+
+          const isValid = row.left === "" || SYMBOL_REGEX.test(row.left);
+
 
           return (
             <div
@@ -76,13 +86,16 @@ export default function RulesGridCard({
                   : styles.gridRow
               }
             >
-              <input
+             <input
                 value={row.left}
-                onChange={(e) => updateRow(i, "left", e.target.value)}
+                onChange={(e) => {
+                  updateRow(i, "left", e.target.value);
+                }}
                 placeholder={leftPlaceholder}
                 readOnly={locked}
                 style={{
                   ...styles.gridInput,
+                  borderColor: isValid ? styles.gridInput : "#ff4d4f",
                   ...(locked && {
                     backgroundColor: styles.card.backgroundColor,
                     borderStyle: "dotted",
@@ -91,6 +104,7 @@ export default function RulesGridCard({
                 onFocus={(e) => locked && e.target.blur()}
                 spellCheck={false}
               />
+
 
               <input
                 value={row.right}

@@ -158,6 +158,7 @@ export default function Explorer() {
       <main style={styles.mainGrid}>
         <RulesGridCard
           title="Token Regex Rules"
+          tokens = {true}
           rows={tokenRows}
           setRows={setTokenRows}
           leftPlaceholder="TOKEN_NAME"
@@ -170,6 +171,7 @@ export default function Explorer() {
         <RulesGridCard
           title="Grammar Rules"
           rows={grammarRows}
+          tokens = {false}
           setRows={setGrammarRows}
           leftPlaceholder="Non Terminal"
           rightPlaceholder="Rule expression"
@@ -177,7 +179,7 @@ export default function Explorer() {
           disableRemoveIndices={[0]}
           help={
             <>
-              EBNF style expressions.
+              EBNF style expressions. To hide a rule from the final tree, prefix it with an underscrore e.g _expr.
             </>
           }
         />
