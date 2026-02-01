@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from lark import Lark, Token, Tree
@@ -48,7 +48,7 @@ def ast_to_json(node, counter):
     else:
         raise TypeError(f"Unknown node type: {type(node)}")
 
-@app.post("/parse")
+@app.post("/")
 async def parse_code(request: CodeRequest):
     try:
         grammar = ""
