@@ -12,10 +12,13 @@ export default function RulesGridCard({
   helpRight,
   addLabel = "Add row",
   showIgnore = false,
+  lockLeftIndices = [],
+  disableRemoveIndices = [],
 }) {
   const [editing, setEditing] = useState(false);
 
   function updateRow(index, key, value) {
+    if (key === "left" && lockLeftIndices.includes(index)) return;
     const next = rows.map((row, i) => (i === index ? { ...row, [key]: value } : row));
     setRows(next);
   }
@@ -30,6 +33,7 @@ export default function RulesGridCard({
   }
 
   function removeRow(index) {
+    if (disableRemoveIndices.includes(index)) return;
     const next = rows.filter((_, i) => i !== index);
     setRows(next.length ? next : [{ left: "", right: "" }]);
   }
@@ -64,6 +68,7 @@ export default function RulesGridCard({
               value={row.left}
               onChange={(e) => updateRow(i, "left", e.target.value)}
               placeholder={leftPlaceholder}
+              readOnly={lockLeftIndices.includes(i)}
               style={styles.gridInput}
               spellCheck={false}
             />
@@ -93,7 +98,7 @@ export default function RulesGridCard({
                 />
               </label>
             )}
-            {editing ? (
+            {editing && !disableRemoveIndices.includes(i) ? (
               <button type="button" onClick={() => removeRow(i)} style={styles.rowBtn}>
                 Remove
               </button>

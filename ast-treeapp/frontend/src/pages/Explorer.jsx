@@ -17,6 +17,7 @@ const DEFAULT_TOKEN_ROWS = [
 ];
 
 const DEFAULT_GRAMMAR_ROWS = [
+  { left: "Start", right: "Expr" },
   { left: "Expr", right: "Term (PLUS Term)*" },
   { left: "Term", right: "Factor (STAR Factor)*" },
   { left: "Factor", right: "NUMBER | LPAREN Expr RPAREN" },
@@ -171,6 +172,8 @@ export default function Explorer() {
           setRows={setGrammarRows}
           leftPlaceholder="NonTerminal"
           rightPlaceholder="Rule expression"
+          lockLeftIndices={[0]}
+          disableRemoveIndices={[0]}
           help={
             <>
               EBNF style expressions.
