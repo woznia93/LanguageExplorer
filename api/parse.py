@@ -1,19 +1,8 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import json
+from http.server import BaseHTTPRequestHandler
 from pydantic import BaseModel
 from lark import Lark, Token, Tree
 from typing import List, Optional
-from mangum import Mangum
-import json
-
-app = FastAPI(title="AST Explorer API", version="1.0.0")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 class TokenRule(BaseModel):
     key: str
@@ -47,33 +36,50 @@ def ast_to_json(node, counter):
             "children": [ast_to_json(c, counter) for c in node.children],
         }
     else:
-        raise TypeError(f"Unknown node type: {type(node)}")
+        return None
 
-@app.post("/")
-def parse_code(request: CodeRequest):
-    try:
-        grammar = ""
-        for rule in request.grammarRules:
-            grammar += f"{rule.left} : {rule.right}\n"
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        try:
+            content_length = int(self.headers['Content-Length'])
+            body = self.rfile.read(content_length)
+            data = json.loads(body)
+            
+            grammar = ""
+            for rule in data.get('grammarRules', []):
+                grammar += f"{rule['left']} : {rule['right']}\n"
 
-        for rule in request.tokenRules:
-            grammar += f"{rule.key} : /{rule.value}/\n"
-            if rule.ignore:
-                grammar += f"%ignore {rule.key}\n"
+            for rule in data.get('tokenRules', []):
+                grammar += f"{rule['key']} : /{rule['value']}/\n"
+                if rule.get('ignore'):
+                    grammar += f"%ignore {rule['key']}\n"
 
-        parser = Lark(grammar, propagate_positions=True)
-        tree = parser.parse(request.source)
+            parser = Lark(grammar, propagate_positions=True)
+            tree = parser.parse(data['source'])
 
-        counter = [0]
-        ast = ast_to_json(tree, counter)
+            counter = [0]
+            ast = ast_to_json(tree, counter)
 
-        return {"ok": True, "ast": ast, "tokens": []}
-    except Exception as e:
-        return {"ok": False, "errors": [{"message": str(e)}]}
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({"ok": True, "ast": ast, "tokens": []}).encode())
+        except Exception as e:
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({"ok": False, "errors": [{"message": str(e)}]}).encode())
 
-@app.get("/")
-def health():
-    return {"status": "ok"}
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
 
-handler = Mangum(app)
+    def log_message(self, format, *args):
+        pass
+
 
