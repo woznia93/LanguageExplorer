@@ -51,20 +51,29 @@ def ast_to_json(node):
     """
     Recursively converts a Lark AST node into JSON-friendly dict
     """
+    id = 0
     if isinstance(node, Token):
         return {
+            "id": 1,
             "type": node.type,
             "value": node.value,
-            "start_pos": node.start_pos,
+            "range": {
+                "start": node.start_pos,
+                "end_pos": node.end_pos
+            },
             "line": node.line,
             "column": node.column,
         }
     elif isinstance(node, Tree):
         return {
+            "id": 1,
             "type": node.data,  # grammar rule name
-            "value": getattr(node.meta, "value", None),
-            "start_pos": getattr(node.meta, "start_pos", None),
-            "end_pos": getattr(node.meta, "end_pos", None),
+            "range": {
+                "start_pos": getattr(node.meta, "start_pos", None),
+                "end_pos": getattr(node.meta, "end_pos", None),
+            },
+            "line": getattr(node.meta, "line", None),
+            "column": getattr(node.meta, "column", None),
             "children": [ast_to_json(child) for child in node.children],
         }
     else:
@@ -90,8 +99,14 @@ def parse_code(request: CodeRequest):
 
     parser = Lark(grammar, propagate_positions=True)
     tree = parser.parse(request.source)
-    j = ast_to_json(tree)
-    print(json.dumps(j, indent=2))
+    ast = ast_to_json(tree)
+    print(json.dumps(ast, indent=2))
+
+    return {
+        "ok": True,
+        "ast": ast,
+        "tokens": []
+    }
 
 
     return 1;
