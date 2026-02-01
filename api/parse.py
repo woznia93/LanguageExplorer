@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler
 from pydantic import BaseModel
 from lark import Lark, Token, Tree
 from typing import List, Optional
+import re
 
 class TokenRule(BaseModel):
     key: str
@@ -27,12 +28,22 @@ def ast_to_json(node, counter):
             "value": node.value,
             "line": node.line,
             "column": node.column,
+            "range": {
+                "start": node.start_pos,
+                "end": node.end_pos
+            },
         }
     elif isinstance(node, Tree):
         counter[0] += 1
         return {
             "id": counter[0],
             "type": node.data,
+            "line": getattr(node.meta, "line", None),
+            "range": {
+                "start": getattr(node.meta, "start_pos", None),
+                "end": getattr(node.meta, "end_pos", None),
+            },
+            "column": getattr(node.meta, "column", None),
             "children": [ast_to_json(c, counter) for c in node.children],
         }
     else:
@@ -45,11 +56,27 @@ class handler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length)
             data = json.loads(body)
             
+            RULE_NAME_PATTERN = r"^[_a-z][_a-z0-9]*$"
+            TOKEN_NAME_PATTERN = r"^[_A-Z][_A-Z0-9]*$"
             grammar = ""
+
             for rule in data.get('grammarRules', []):
+                if not rule["left"]:
+                    raise ValueError("Grammar rule left-hand side is empty")
+                
+                if re.fullmatch(RULE_NAME_PATTERN, rule['left']) is None:
+                    raise ValueError(f"Invalid grammar rule name: {rule['left']}\n\nGrammar rules must start with a lowercase or an underscore, followed by a lowercase, underscore, or number.")
+                
                 grammar += f"{rule['left']} : {rule['right']}\n"
 
             for rule in data.get('tokenRules', []):
+
+                if not rule["key"]:
+                    raise ValueError("Token name is empty")
+                
+                if re.fullmatch(TOKEN_NAME_PATTERN, rule['key']) is None:
+                    raise ValueError(f"Invalid token name: {rule['key']}\n\nToken names must start with an uppercase or an underscore, followed by an upercase, underscore, or number.")
+
                 grammar += f"{rule['key']} : /{rule['value']}/\n"
                 if rule.get('ignore'):
                     grammar += f"%ignore {rule['key']}\n"
@@ -83,12 +110,12 @@ class handler(BaseHTTPRequestHandler):
         pass
 
 
-# if __name__ == "__main__":
-#     from http.server import HTTPServer
+if __name__ == "__main__":
+    from http.server import HTTPServer
 
-#     host = "0.0.0.0"  # listen on all interfaces
-#     port = 8000       # choose your port
+    host = "0.0.0.0"  # listen on all interfaces
+    port = 8000       # choose your port
 
-#     print(f"Server running at http://{host}:{port}/")
-#     server = HTTPServer((host, port), handler)
-#     server.serve_forever()
+    print(f"Server running at http://{host}:{port}/")
+    server = HTTPServer((host, port), handler)
+    server.serve_forever()
