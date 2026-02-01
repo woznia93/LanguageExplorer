@@ -186,7 +186,6 @@ export default function Explorer() {
           value={sourceText}
           onChange={setSourceText}
           onUpload={handleUpload}
-          errors={errors}
         />
 
         <AstPanel
@@ -194,6 +193,7 @@ export default function Explorer() {
           selectedNode={selectedNode}
           setSelectedNode={setSelectedNode}
           tokens={tokens}
+          errors={errors}
         />
       </main>
 
