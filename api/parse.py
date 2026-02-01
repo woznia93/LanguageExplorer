@@ -59,7 +59,7 @@ def ast_to_json(node):
             "value": node.value,
             "range": {
                 "start": node.start_pos,
-                "end_pos": node.end_pos
+                "end": node.end_pos
             },
             "line": node.line,
             "column": node.column,
@@ -68,8 +68,8 @@ def ast_to_json(node):
         r = {
             "type": node.data,  # grammar rule name
             "range": {
-                "start_pos": getattr(node.meta, "start_pos", None),
-                "end_pos": getattr(node.meta, "end_pos", None),
+                "start": getattr(node.meta, "start_pos", None),
+                "end": getattr(node.meta, "end_pos", None),
             },
             "line": getattr(node.meta, "line", None),
             "column": getattr(node.meta, "column", None),
