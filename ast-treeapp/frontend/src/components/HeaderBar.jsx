@@ -1,6 +1,14 @@
 import { styles } from "../styles/astExplorerStyles.js";
 
-export default function HeaderBar({ status, useMock, setUseMock, onParse, isParsing }) {
+export default function HeaderBar({
+  status,
+  useMock,
+  setUseMock,
+  theme,
+  setTheme,
+  onParse,
+  isParsing,
+}) {
   return (
     <header style={styles.header}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
@@ -11,6 +19,14 @@ export default function HeaderBar({ status, useMock, setUseMock, onParse, isPars
       </div>
 
       <div style={styles.headerActions}>
+        <button
+          type="button"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          style={styles.editBtn}
+        >
+          {theme === "dark" ? "Light theme" : "Dark theme"}
+        </button>
+
         <label style={styles.toggle}>
           <input
             type="checkbox"

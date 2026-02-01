@@ -87,7 +87,7 @@ export default function RulesGridCard({
                   type="checkbox"
                   checked={Boolean(row.ignore)}
                   onChange={(e) => setIgnore(i, e.target.checked)}
-                  style={{ accentColor: "#3b82f6" }}
+                  style={{ accentColor: "var(--accent)" }}
                 />
               </label>
             )}
