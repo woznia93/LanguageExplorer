@@ -1,8 +1,27 @@
-import json
-from http.server import BaseHTTPRequestHandler
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from lark import Lark, Token, Tree
-from typing import List, Optional
+from typing import List, Optional, Dict
+import json
+import re
+
+global_id = 0
+
+app = FastAPI(
+    title="AST Explorer API",
+    description="API for parsing and analyzing code",
+    version="1.0.0"
+)
+
+# CORS - Allow React frontend to make requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class TokenRule(BaseModel):
     key: str
@@ -18,68 +37,218 @@ class CodeRequest(BaseModel):
     tokenRules: Optional[List[TokenRule]] = []
     grammarRules: Optional[List[GrammarRule]] = []
 
-def ast_to_json(node, counter):
+# Routes
+@app.get("/")
+def read_root():
+    return {
+        "message": "AST Explorer API",
+        "docs": "/docs",  # FastAPI auto-generates docs!
+        "version": "1.0.0"
+    }
+
+def ast_to_json(node):
+    """
+    Recursively converts a Lark AST node into JSON-friendly dict
+    """
+    global global_id
     if isinstance(node, Token):
-        counter[0] += 1
+        global_id += 1
         return {
-            "id": counter[0],
+            "id": global_id,
             "type": node.type,
             "value": node.value,
+            "range": {
+                "start": node.start_pos,
+                "end_pos": node.end_pos
+            },
             "line": node.line,
             "column": node.column,
         }
     elif isinstance(node, Tree):
-        counter[0] += 1
-        return {
-            "id": counter[0],
-            "type": node.data,
-            "children": [ast_to_json(c, counter) for c in node.children],
+        r = {
+            "type": node.data,  # grammar rule name
+            "range": {
+                "start_pos": getattr(node.meta, "start_pos", None),
+                "end_pos": getattr(node.meta, "end_pos", None),
+            },
+            "line": getattr(node.meta, "line", None),
+            "column": getattr(node.meta, "column", None),
+            "id": 0,
+            "children": [ast_to_json(child) for child in node.children],
         }
+        global_id += 1
+        r["id"] = global_id
+        return r
     else:
-        return None
-
-class handler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        try:
-            content_length = int(self.headers['Content-Length'])
-            body = self.rfile.read(content_length)
-            data = json.loads(body)
-            
-            grammar = ""
-            for rule in data.get('grammarRules', []):
-                grammar += f"{rule['left']} : {rule['right']}\n"
-
-            for rule in data.get('tokenRules', []):
-                grammar += f"{rule['key']} : /{rule['value']}/\n"
-                if rule.get('ignore'):
-                    grammar += f"%ignore {rule['key']}\n"
-
-            parser = Lark(grammar, propagate_positions=True)
-            tree = parser.parse(data['source'])
-
-            counter = [0]
-            ast = ast_to_json(tree, counter)
-
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps({"ok": True, "ast": ast, "tokens": []}).encode())
-        except Exception as e:
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps({"ok": False, "errors": [{"message": str(e)}]}).encode())
-
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-
-    def log_message(self, format, *args):
-        pass
+        raise TypeError(f"Unknown node type: {type(node)}")
 
 
+@app.post("/api/parse")
+def parse_code(request: CodeRequest):
+    """
+    Parse code and return AST
+    """
+
+    try:
+        # TODO: replace these with your real patterns
+        RULE_NAME_PATTERN = r"^[_a-z][_a-z0-9]*$"
+        TOKEN_NAME_PATTERN = r"^[_A-Z][_A-Z0-9]*$"
+
+
+        grammar = ""
+
+        for rule in request.grammarRules:
+            # check empty
+            if not rule.left:
+                raise ValueError("Grammar rule left-hand side is empty")
+
+            # check regex match
+            if re.fullmatch(RULE_NAME_PATTERN, rule.left) is None:
+                raise ValueError(f"Invalid grammar rule name: {rule.left}\n\nGrammar rules must start with a lowercase or an underscore, followed by a lowercase, underscore, or number.")
+
+            grammar += f"{rule.left} : {rule.right}\n"
+
+        for rule in request.tokenRules:
+
+
+            # check empty
+            if not rule.key:
+                raise ValueError("Token name is empty")
+
+            # check regex match
+            if re.fullmatch(TOKEN_NAME_PATTERN, rule.key) is None:
+                raise ValueError(f"Invalid token name: {rule.key}\n\nToken names must start with an uppercase or an underscore, followed by an upercase, underscore, or number.")
+
+            grammar += f"{rule.key} : /{rule.value}/\n"
+
+            if rule.ignore:
+                grammar += f"%ignore {rule.key}\n"
+
+        print(grammar)
+
+        parser = Lark(grammar, propagate_positions=True)
+        tree = parser.parse(request.source)
+        ast = ast_to_json(tree)
+
+        print(json.dumps(ast, indent=2))
+
+        return {
+            "ok": True,
+            "ast": ast,
+            "tokens": []
+        }
+
+    except Exception as e:
+        print(str(e))
+        return {
+            "ok": False,
+            "errors": [{"message": str(e)}]
+        }
+    
+
+
+
+    # try:
+    #     if request.language == "python":
+    #         tree = ast.parse(request.code)
+    #         ast_dict = ast_to_dict(tree)
+    #         return {
+    #             "success": True,
+    #             "ast": ast_dict,
+    #             "language": request.language
+    #         }
+    #     else:
+    #         return {
+    #             "success": False,
+    #             "error": f"Language '{request.language}' not supported yet"
+    #         }
+    # except SyntaxError as e:
+    #     raise HTTPException(status_code=400, detail={
+    #         "success": False,
+    #         "error": str(e),
+    #         "line": e.lineno,
+    #         "offset": e.offset
+    #     })
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail={
+    #         "success": False,
+    #         "error": str(e)
+    #     })
+
+# @app.post("/api/analyze")
+# def analyze_code(request: CodeRequest):
+#     """
+#     Analyze code and return statistics
+#     """
+#     try:
+#         tree = ast.parse(request.code)
+        
+#         # Count different node types
+#         stats = {
+#             "functions": 0,
+#             "classes": 0,
+#             "imports": 0,
+#             "lines": len(request.code.split('\n')),
+#             "characters": len(request.code)
+#         }
+        
+#         for node in ast.walk(tree):
+#             if isinstance(node, ast.FunctionDef):
+#                 stats["functions"] += 1
+#             elif isinstance(node, ast.ClassDef):
+#                 stats["classes"] += 1
+#             elif isinstance(node, (ast.Import, ast.ImportFrom)):
+#                 stats["imports"] += 1
+        
+#         return {
+#             "success": True,
+#             "stats": stats
+#         }
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+# @app.post("/api/transform")
+# def transform_code(request: TransformRequest):
+#     """
+#     Apply transformations to code
+#     """
+#     # Example: convert function names to uppercase
+#     try:
+#         tree = ast.parse(request.code)
+        
+#         class FunctionNameTransformer(ast.NodeTransformer):
+#             def visit_FunctionDef(self, node):
+#                 if request.transformation == "uppercase_functions":
+#                     node.name = node.name.upper()
+#                 return node
+        
+#         transformer = FunctionNameTransformer()
+#         new_tree = transformer.visit(tree)
+#         new_code = ast.unparse(new_tree)  # Python 3.9+
+        
+#         return {
+#             "success": True,
+#             "original": request.code,
+#             "transformed": new_code
+#         }
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+# # Helper function to convert AST to dict
+# def ast_to_dict(node):
+#     """Convert AST node to dictionary for JSON serialization"""
+#     if isinstance(node, ast.AST):
+#         result = {"_type": node.__class__.__name__}
+#         for field, value in ast.iter_fields(node):
+#             if isinstance(value, list):
+#                 result[field] = [ast_to_dict(item) for item in value]
+#             else:
+#                 result[field] = ast_to_dict(value)
+#         return result
+#     else:
+#         return node
+
+# For running directly (optional)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
