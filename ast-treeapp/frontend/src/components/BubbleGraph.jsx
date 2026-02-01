@@ -151,8 +151,8 @@ export default function BubbleGraph({ ast, selectedId, onSelect, preserveStructu
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
-    svg.selectAll("g.node").selectAll("circle").attr("fill", (d) => (d.id && d.id === selectedId ? "rgba(255,255,255,0.12)" : "#111111"))
-      .attr("stroke", (d) => (d.id && d.id === selectedId ? "#ffffff" : "#2a2a2a"))
+    svg.selectAll("g.node").selectAll("circle").attr("fill", (d) => (d.id && d.id === selectedId ? "rgba(7, 7, 7, 0.28)" : "#111111"))
+      .attr("stroke", (d) => (d.id && d.id === selectedId ? "#ffffff" : "#969696"))
       .attr("stroke-width", (d) => (d.id && d.id === selectedId ? 2 : 1));
   }, [selectedId]);
 
