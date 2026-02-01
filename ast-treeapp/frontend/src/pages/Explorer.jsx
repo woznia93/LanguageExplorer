@@ -59,7 +59,7 @@ const THEME_VARS = {
     "--primary-bg": "#111111",
     "--primary-border": "#111111",
     "--primary-text": "rgb(249, 249, 249)",
-    "--row-selected": "rgba(17,17,17,0.06)",
+    "--row-selected": "rgba(41, 0, 0, 0.28)",
     "--row-selected-border": "rgba(17,17,17,0.12)",
     "--shadow": "0 10px 22px rgba(20,20,20,0.08)",
     "--accent": "#2563eb",
