@@ -4,8 +4,9 @@ from pydantic import BaseModel
 from lark import Lark, Token, Tree
 from typing import List, Optional
 from mangum import Mangum
+import json
 
-app = FastAPI(title="AST Explorer API", version="1.0.0", root_path="/api/parse")
+app = FastAPI(title="AST Explorer API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -49,7 +50,7 @@ def ast_to_json(node, counter):
         raise TypeError(f"Unknown node type: {type(node)}")
 
 @app.post("/")
-async def parse_code(request: CodeRequest):
+def parse_code(request: CodeRequest):
     try:
         grammar = ""
         for rule in request.grammarRules:
@@ -71,7 +72,8 @@ async def parse_code(request: CodeRequest):
         return {"ok": False, "errors": [{"message": str(e)}]}
 
 @app.get("/")
-async def health():
+def health():
     return {"status": "ok"}
 
-handler = Mangum(app, lifespan="off")
+handler = Mangum(app)
+
