@@ -198,11 +198,13 @@ export default function BubbleGraph({
 function layoutGraph(ast) {
   const nodes = [];
   const links = [];
-  const columnWidth = 200;
+  const columnWidth = 140;
   const rowHeight = 90;
-  const paddingX = 30;
+  const paddingX = 60;
   const paddingY = 30;
-  const levels = [];
+
+  // First pass: walk the tree, collect nodes + links, count leaves to assign x slots
+  let leafCounter = 0;
 
   function getChildren(n) {
     if (!n || typeof n !== "object") return [];
@@ -212,26 +214,42 @@ function layoutGraph(ast) {
     return [];
   }
 
+  // Returns the x position assigned to this node (used to center parents)
   function walk(node, depth) {
-    if (!node) return;
-    if (!levels[depth]) levels[depth] = [];
-    const index = levels[depth].length;
-    levels[depth].push(node);
+    if (!node) return 0;
 
-    const id = node.id ?? `${depth}-${index}`;
-    nodes.push({ id, raw: node, depth, index, label: node.type ?? "Node" });
+    const id = node.id ?? `node-${nodes.length}`;
+    const kids = getChildren(node);
 
-    getChildren(node).forEach((child) => {
-      links.push({ from: node, to: child });
-      walk(child, depth + 1);
-    });
+    // Push node placeholder — x will be filled in below
+    const entry = { id, raw: node, depth, label: node.type ?? "Node", x: 0 };
+    nodes.push(entry);
+
+    if (kids.length === 0) {
+      // Leaf: claim the next slot
+      entry.x = leafCounter;
+      leafCounter++;
+    } else {
+      // Branch: recurse children, then center over their x range
+      let minX = Infinity;
+      let maxX = -Infinity;
+      kids.forEach((child) => {
+        links.push({ from: node, to: child });
+        const childX = walk(child, depth + 1);
+        minX = Math.min(minX, childX);
+        maxX = Math.max(maxX, childX);
+      });
+      entry.x = (minX + maxX) / 2;
+    }
+
+    return entry.x;
   }
 
   walk(ast, 0);
 
-  // Compute geometry
+  // Second pass: convert slot indices to pixel positions, compute radii
   nodes.forEach((n) => {
-    n.x = paddingX + n.index * columnWidth;
+    n.x = paddingX + n.x * columnWidth;
     n.y = paddingY + n.depth * rowHeight;
     n.r = 18 + Math.min(22, Math.max(0, childCount(n.raw) * 2));
   });
@@ -243,9 +261,10 @@ function layoutGraph(ast) {
     l.to = rawToNode.get(l.to) ?? l.to;
   });
 
-  const maxCols = levels.reduce((m, lvl) => Math.max(m, lvl.length), 1);
-  const width = Math.max(600, paddingX * 2 + (maxCols - 1) * columnWidth + 120);
-  const height = Math.max(320, paddingY * 2 + (levels.length - 1) * rowHeight + 120);
+  const maxX = nodes.reduce((m, n) => Math.max(m, n.x), 0);
+  const maxDepth = nodes.reduce((m, n) => Math.max(m, n.depth), 0);
+  const width = Math.max(600, maxX + paddingX * 2);
+  const height = Math.max(320, paddingY * 2 + maxDepth * rowHeight + 120);
 
   return { nodes, links, width, height };
 }
