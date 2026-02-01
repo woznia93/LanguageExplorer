@@ -90,28 +90,36 @@ def parse_code(request: CodeRequest):
     Parse code and return AST
     """
 
-    grammar = ""
-    for rule in request.grammarRules: 
-        grammar += f"{rule.left} : {rule.right}\n"
-        
+    try:
+        grammar = ""
+        for rule in request.grammarRules: 
+            grammar += f"{rule.left} : {rule.right}\n"
+            
 
-    for rule in request.tokenRules:
-        grammar += f"{rule.key} : /{rule.value}/\n"
-        if rule.ignore:
-            grammar += f"%ignore {rule.key}\n"
+        for rule in request.tokenRules:
+            grammar += f"{rule.key} : /{rule.value}/\n"
+            if rule.ignore:
+                grammar += f"%ignore {rule.key}\n"
 
-    print(grammar)
+        print(grammar)
 
-    parser = Lark(grammar, propagate_positions=True)
-    tree = parser.parse(request.source)
-    ast = ast_to_json(tree)
-    print(json.dumps(ast, indent=2))
+        parser = Lark(grammar, propagate_positions=True)
+        tree = parser.parse(request.source)
+        ast = ast_to_json(tree)
+        print(json.dumps(ast, indent=2))
 
-    return {
-        "ok": True,
-        "ast": ast,
-        "tokens": []
-    }
+        return {
+            "ok": True,
+            "ast": ast,
+            "tokens": []
+        }
+    except Exception as e:
+        print(str(e))
+        return {
+            "ok": False,
+            "errors": [{"message": str(e)}]
+        }
+    
 
 
     return 1;
