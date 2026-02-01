@@ -8,7 +8,7 @@ export default function ErrorPanel({ errors }) {
       <div style={{ fontWeight: 700, marginBottom: 8 }}>Errors</div>
       {errors.map((err, idx) => (
         <div key={idx} style={{ marginBottom: 8 }}>
-          <div style={{ fontWeight: 600 }}>{err.message ?? "Error"}</div>
+          <pre style={{ fontWeight: 600 }}>{err.message ?? "Error"}</pre>
           {err.at && (
             <div style={styles.mono}>
               at line {err.at.line}, col {err.at.col}

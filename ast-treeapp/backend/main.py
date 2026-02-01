@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from lark import Lark, Token, Tree
 from typing import List, Optional, Dict
 import json
+import re
 
 global_id = 0
 
@@ -81,6 +82,7 @@ def ast_to_json(node):
     else:
         raise TypeError(f"Unknown node type: {type(node)}")
 
+
 @app.post("/api/parse")
 def parse_code(request: CodeRequest):
     """
@@ -88,13 +90,37 @@ def parse_code(request: CodeRequest):
     """
 
     try:
+        # TODO: replace these with your real patterns
+        RULE_NAME_PATTERN = r"^[_a-z][_a-z0-9]*$"
+        TOKEN_NAME_PATTERN = r"^[_A-Z][_A-Z0-9]*$"
+
+
         grammar = ""
-        for rule in request.grammarRules: 
+
+        for rule in request.grammarRules:
+            # check empty
+            if not rule.left:
+                raise ValueError("Grammar rule left-hand side is empty")
+
+            # check regex match
+            if re.fullmatch(RULE_NAME_PATTERN, rule.left) is None:
+                raise ValueError(f"Invalid grammar rule name: {rule.left}\n\nGrammar rules must start with a lowercase or an underscore, followed by a lowercase, underscore, or number.")
+
             grammar += f"{rule.left} : {rule.right}\n"
-            
 
         for rule in request.tokenRules:
+
+
+            # check empty
+            if not rule.key:
+                raise ValueError("Token rule key is empty")
+
+            # check regex match
+            if re.fullmatch(TOKEN_NAME_PATTERN, rule.key) is None:
+                raise ValueError(f"Invalid token name: {rule.key}\n\nToken names must start with an uppercase or an underscore, followed by an upercase, underscore, or number.")
+
             grammar += f"{rule.key} : /{rule.value}/\n"
+
             if rule.ignore:
                 grammar += f"%ignore {rule.key}\n"
 
@@ -103,6 +129,7 @@ def parse_code(request: CodeRequest):
         parser = Lark(grammar, propagate_positions=True)
         tree = parser.parse(request.source)
         ast = ast_to_json(tree)
+
         print(json.dumps(ast, indent=2))
 
         return {
@@ -110,6 +137,7 @@ def parse_code(request: CodeRequest):
             "ast": ast,
             "tokens": []
         }
+
     except Exception as e:
         print(str(e))
         return {

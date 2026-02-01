@@ -209,7 +209,6 @@ function rowsToTokenRules(rows) {
     .map((r) => {
       const key = (r.left ?? "")
         .trim()
-        .toUpperCase()
         .replace(/\s+/g, "_");
 
       const value = r.right?.trim() ?? "";
@@ -225,7 +224,6 @@ function rowsToGrammarRules(rows) {
     .map((r) => {
       const left = (r.left ?? "")
         .trim()
-        .toLowerCase()
         .replace(/\s+/g, "_");
       const right = r.right?.trim() ?? "";
 
