@@ -78,7 +78,7 @@ export default function Explorer() {
   const [errors, setErrors] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
 
-  const [useMock, setUseMock] = useState(true);
+  const [useMock, setUseMock] = useState(false);
 
   const tokenRules = useMemo(() => rowsToTokenRules(tokenRows), [tokenRows]);
   const grammarRules = useMemo(() => rowsToGrammarRules(grammarRows), [grammarRows]);
